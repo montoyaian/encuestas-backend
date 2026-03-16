@@ -37,17 +37,8 @@ export class SurveysService {
         'survey.id',
         'survey.title',
         'survey.description',
-        'survey.allowMultipleResponses',
         'survey.targetRole',
         'survey.createdAt',
-        'creator.id',
-        'creator.fullName',
-        'question.id',
-        'question.text',
-        'question.type',
-        'question.options',
-        'question.metadata',
-        'question.questionOrder',
       ])
       .where(
         'survey.targetRole && ARRAY[:...visibleRoles]::surveys_target_role_enum[]',
@@ -72,6 +63,28 @@ export class SurveysService {
     return surveys;
   }
 
+
+  async findByUserId(userId: number) {
+    const surveys = await this.surveyRepository
+      .createQueryBuilder('survey')
+      .leftJoinAndSelect('survey.creator', 'creator')
+      .leftJoinAndSelect('survey.questions', 'question')
+      .select([
+        'survey.id',
+        'survey.title',
+        'survey.description',
+        'survey.targetRole',
+        'survey.createdAt'
+      ])
+      .where('creator.id = :userId', { userId })
+      .orderBy('survey.createdAt', 'DESC')
+      .addOrderBy('question.questionOrder', 'ASC')
+      .getMany();
+    return surveys;
+  }
+      
+
+
   async findOneVisibleByProfile(id: string, profile: ProfileEnum) {
     const visibleRoles = this.getVisibleRoles(profile);
     const survey = await this.surveyRepository
@@ -95,11 +108,30 @@ export class SurveysService {
         'question.questionOrder',
       ])
       .where('survey.id = :id', { id })
-      .andWhere(
-        'survey.targetRole && ARRAY[:...visibleRoles]::surveys_target_role_enum[]',
-        { visibleRoles },
-      )
       .addOrderBy('question.questionOrder', 'ASC')
+      .getOne();
+
+    if (!survey) {
+      throw new NotFoundException('Encuesta no encontrada');
+    }
+
+    return survey;
+  }
+
+  async findOneWithQuestionsOrFail(id: string) {
+    const survey = await this.surveyRepository
+      .createQueryBuilder('survey')
+      .leftJoinAndSelect('survey.questions', 'question')
+      .select([
+        'survey.id',
+        'question.id',
+        'question.text',
+        'question.type',
+        'question.options',
+        'question.questionOrder',
+      ])
+      .where('survey.id = :id', { id })
+      .orderBy('question.questionOrder', 'ASC')
       .getOne();
 
     if (!survey) {
@@ -255,7 +287,39 @@ export class SurveysService {
       throw new NotFoundException('Encuesta no encontrada');
     }
     try {
-      await this.surveyRepository.remove(survey);
+      await this.surveyRepository.manager.transaction(async (manager) => {
+        await manager
+          .createQueryBuilder()
+          .delete()
+          .from('answers')
+          .where(
+            `response_id IN (
+              SELECT id
+              FROM responses
+              WHERE survey_id = :surveyId
+            )`,
+            { surveyId: id },
+          )
+          .orWhere(
+            `survey_question_id IN (
+              SELECT id
+              FROM survey_questions
+              WHERE survey_id = :surveyId
+            )`,
+            { surveyId: id },
+          )
+          .execute();
+
+        await manager
+          .createQueryBuilder()
+          .delete()
+          .from(Response)
+          .where('survey_id = :surveyId', { surveyId: id })
+          .execute();
+
+        await manager.remove(survey);
+      });
+
       return new StandardResponse('Encuesta eliminada exitosamente');
     } catch (error) {
       throw new BadRequestException('Error al eliminar la encuesta: ' + (error?.message || error));

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AnswersService } from './answers.service';
 import { Response } from './entities/response.entity';
 import { Answer } from './entities/answer.entity';
 import { ResponsesController } from './responses.controller';
@@ -11,7 +12,7 @@ import { User } from 'src/users/entities/user.entity';
 @Module({
   imports: [TypeOrmModule.forFeature([Response, Answer, Survey, SurveyQuestion, User])],
   controllers: [ResponsesController],
-  providers: [ResponsesService],
-  exports: [ResponsesService],
+  providers: [ResponsesService, AnswersService],
+  exports: [ResponsesService, AnswersService],
 })
 export class ResponsesModule {}

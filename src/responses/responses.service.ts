@@ -78,13 +78,17 @@ export class ResponsesService {
           surveyQuestions.map((question) => [question.id, question]),
         );
 
-        const answers = body.answers.map((answer) =>
-          transactionalAnswerRepository.create({
-            response: savedResponse,
-            surveyQuestion: questionMap.get(answer.surveyQuestionId),
-            value: answer.value,
-          }),
-        );
+        const answers = body.answers.flatMap((answer) => {
+          const values = Array.isArray(answer.value) ? answer.value : [answer.value];
+
+          return values.map((value) =>
+            transactionalAnswerRepository.create({
+              response: savedResponse,
+              surveyQuestion: questionMap.get(answer.surveyQuestionId),
+              value,
+            }),
+          );
+        });
 
         await transactionalAnswerRepository.save(answers);
 

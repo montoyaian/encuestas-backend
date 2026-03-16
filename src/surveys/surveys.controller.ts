@@ -52,4 +52,10 @@ export class SurveysController {
   deleteSurvey(@Param('id', ParseUUIDPipe) id: string) {
     return this.surveysService.remove(id);
   }
+
+  @Get('created/by-me')
+  @UseGuards(AuthGuard('jwt'))
+  getSurveysCreatedByMe(@CurrentUser() user: Payload) {
+    return this.surveysService.findByUserId(user.sub);
+  }
 }
