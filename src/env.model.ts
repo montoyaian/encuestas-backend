@@ -6,4 +6,5 @@ export interface Env {
   POSTGRES_DB: string;
   POSTGRES_SSL?: string;
   JWT_SECRET: string;
+  TOKEN_EXPIRATION?: string;
 }
