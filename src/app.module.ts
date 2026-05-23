@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { ChartsModule } from './charts/charts.module';
 import { SurveysModule } from './surveys/surveys.module';
 import { ResponsesModule } from './responses/responses.module';
+import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ResponsesModule } from './responses/responses.module';
     SurveysModule,
     ResponsesModule,
     ChartsModule,
+    AiAssistantModule,
   ],
   controllers: [AppController],
   providers: [AppService],

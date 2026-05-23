@@ -7,4 +7,5 @@ export interface Env {
   POSTGRES_SSL?: string;
   JWT_SECRET: string;
   TOKEN_EXPIRATION?: string;
+  VANNA_SERVICE_URL?: string;
 }
